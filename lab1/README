@@ -1,0 +1,45 @@
+README for CS111-Lab1c
+
+Lab Partners:
+    Hanjun Li (UID: 504425747)
+    Yunong Jiang (UID: 204466452)
+
+* basic design
+  For Lab1c, we implemented the "time-travel" functionality of the shell.
+  When executing a shell script, it can now exploit the inter-command-tree
+  parallelism to speed up execution.
+
+  The idea is to first build a graph whose vertices represent command-trees
+  and edges represent dependencies between 2 command-trees. Then, the shell
+  execute first the "independent" commands that do not depend on any other
+  command, deleting their edges after finish, and then check for the new
+  "independent" commands... until all the commands are executed.
+
+  The dependency graph takes into account "Read-after-write", "Write-after-
+  write", and "Write-after-read" 3 common types of dependency.
+
+* Notes
+  The implementation is built on the assumption that every command only
+  write to the file specified by ">", the io-redirection operator. To be
+  safe, we further assume that every word within a command represents a
+  file name that is read by the command.
+  (Generally speaking, it's impossible to determine whether a command reads
+  or writes from/to the files mentioned in the command--unless it's a built-
+  in command. In the real world, as a result, it's only reasonalbe to exploit
+  the parallelism for the built-in commands, which may be, in some situations,
+  helpful, but also creates overheads to build the graph.)
+
+  One other issue is that the shell is not (yet) implemented to free the
+  dynamically allocated resourses (the graph for example) during execution.
+  All the resources are finally freed when the program finishes.
+
+* Design Problem 1c
+  A new parameter is added to the "execute-graph" function indicating how many
+  subprocesses we can use in total. The basic idea is that every time before we
+  fork a new child, we check the number of subprocesses left that can be used.
+  Before forking, if there is no usable subprocess, the parent simply waits for 
+  any child to exit, and then fork the new child. Finally, when every command is
+  fired, the parent waits for all subprocesses to exit and then returns. Note
+  that the parent itself does not execute the command. All commands are executed
+  via subprocesses. Therefore the number of subprocesses that the user specifies 
+  must be larger than zero.
